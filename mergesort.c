@@ -3,15 +3,17 @@
 #include <pthread.h> // Biblioteca padrão para criação e manipulação de threads
 #include <string.h> // Biblioteca para manipulação de strings (arrays e chars)
 #include <time.h> // Biblioteca para manipulação de unidades de tempo 
+#include <locale.h> 
+
 
 // Estrutura usada para passar argumentos para as threads
 typedef struct
 {
-    int *vetor;              // Ponteiro para o vetor a ser ordenado
-    int inicio;              // Índice inicial do vetor a ser ordenado pela thread
-    int fim;                 // Índice final do vetor a ser ordenado pela thread
-    double *tempoExecucao;   // Ponteiro para armazenar o tempo de execução da thread
-    int numeroThread;        // Identificador da thread
+    int *vetor;            // Ponteiro para o vetor a ser ordenado
+    int inicio;            // Índice inicial do vetor a ser ordenado pela thread
+    int fim;               // Índice final do vetor a ser ordenado pela thread
+    double *tempoExecucao; // Ponteiro para armazenar o tempo de execução da thread
+    int numeroThread;      // Identificador da thread
 
 } ThreadArgs;
 
@@ -37,17 +39,13 @@ void *routine(void *arg)
     clock_gettime(CLOCK_REALTIME, &fim);
     *args->tempoExecucao = (fim.tv_sec - inicio.tv_sec) + (fim.tv_nsec - inicio.tv_nsec) / 1e9;
 
-    // Imprime informações sobre a thread e o tempo de execução
-    printf("Tempo de execucao do Thread %d: %.6f segundos.\n",
-            args->numeroThread + 1, *args->tempoExecucao);
-
     return NULL;
 }
 
 // Função para mesclar duas partes ordenadas do vetor (parte do algoritmo de merge sort)
 void merge(int *vetor, int inicio1, int fim1, int inicio2, int fim2)
 {
-    int n = fim2 - inicio1; // Tamanho do vetor mesclado
+    int n = fim2 - inicio1;                     // Tamanho do vetor mesclado
     int *temp = (int *)malloc(n * sizeof(int)); // Vetor temporário para armazenar os elementos mesclados
     int i = inicio1, j = inicio2, k = 0;
 
@@ -131,6 +129,9 @@ int filtraArgumentos(int argc, char *argv[], char *argumento)
 
 int main(int argc, char *argv[])
 {
+
+    
+
     int i;
     int num_threads = atoi(argv[1]); // Convertendo argumento para inteiro (número de threads)
     int arquivos;
@@ -155,7 +156,7 @@ int main(int argc, char *argv[])
         FILE *arquivo = fopen(argv[i + 2], "r");
         if (arquivo == NULL)
         {
-            printf("Erro ao abrir arquivo %s\n", argv[i + 1]);
+            printf("Erro ao abrir arquivo %s\n", argv[i + 2]);
             return -1;
         }
         int numero;
@@ -183,7 +184,7 @@ int main(int argc, char *argv[])
         FILE *arquivo = fopen(argv[i + 2], "r");
         if (arquivo == NULL)
         {
-            printf("Erro ao abrir arquivo %s\n", argv[i + 1]);
+            printf("Erro ao abrir arquivo %s\n", argv[i + 2]);
             return -1;
         }
         int numero;
@@ -202,7 +203,7 @@ int main(int argc, char *argv[])
     double *temposExecucao = (double *)malloc(num_threads * sizeof(double));
 
     // Verifica se a alocação foi bem-sucedida
-    if (threads == NULL || args == NULL)
+    if (threads == NULL || args == NULL || temposExecucao == NULL)
     {
         printf("Erro ao alocar memória para as threads.\n");
         return -1;
@@ -226,24 +227,37 @@ int main(int argc, char *argv[])
         pthread_join(threads[i], NULL);
     }
 
-    // Calcula o tempo total de execução das threads
     double tempoTotal = 0;
-    for (i = 0; i < num_threads; i++)
+    for (int i = 0; i < num_threads; i++)
     {
+        printf("Tempo de execução do Thread %d: %.6f segundos.\n",
+               args[i].numeroThread + 1, temposExecucao[i]);
         tempoTotal += temposExecucao[i];
     }
 
-    printf("Tempo total de execucao das threads: %.6f segundos\n", tempoTotal);
+    // Calcula o tempo total de execução das threads
+    printf("Tempo total de execução das threads: %.6f segundos\n", tempoTotal);
 
     // Realiza a mesclagem dos blocos ordenados pelas threads
     int tamanhoBloco = numerosPorThread;
     while (tamanhoBloco < somaNumeros)
     {
-        for (i = 0; i + tamanhoBloco < somaNumeros; i += 2 * tamanhoBloco)
+        for (int i = 0; i < somaNumeros; i += 2 * tamanhoBloco)
         {
             int fim1 = i + tamanhoBloco;
-            int fim2 = (i + 2 * tamanhoBloco < somaNumeros) ? i + 2 * tamanhoBloco : somaNumeros;
-            merge(vetorNumeros, i, fim1, fim1, fim2);
+            int inicio2 = fim1;
+            int fim2 = i + 2 * tamanhoBloco;
+
+            if (fim1 > somaNumeros)
+            {
+                fim1 = somaNumeros;
+            }
+            if (fim2 > somaNumeros)
+            {
+                fim2 = somaNumeros;
+            }
+
+            merge(vetorNumeros, i, fim1, inicio2, fim2);
         }
         tamanhoBloco *= 2;
     }
@@ -262,10 +276,10 @@ int main(int argc, char *argv[])
     }
     fclose(arquivoSaida);
 
-    // Libera a memória alocada dinamicamente
+    // Libera memória alocada
+    free(vetorNumeros);
     free(threads);
     free(args);
-    free(vetorNumeros);
     free(temposExecucao);
 
     return 0;
