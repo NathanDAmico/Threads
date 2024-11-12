@@ -3,7 +3,7 @@
 #include <pthread.h> // Biblioteca padrão para criação e manipulação de threads
 #include <string.h> // Biblioteca para manipulação de strings (arrays e chars)
 #include <time.h> // Biblioteca para manipulação de unidades de tempo 
-#include <locale.h> 
+#include <locale.h> // Biblioteca para inclusão de caracteres especiais no código 
 
 
 // Estrutura usada para passar argumentos para as threads
@@ -129,9 +129,6 @@ int filtraArgumentos(int argc, char *argv[], char *argumento)
 
 int main(int argc, char *argv[])
 {
-
-    
-
     int i;
     int num_threads = atoi(argv[1]); // Convertendo argumento para inteiro (número de threads)
     int arquivos;
